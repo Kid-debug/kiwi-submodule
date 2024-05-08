@@ -1,0 +1,47 @@
+grafana_helm_push:
+  stage: helmChart:push
+  extends:
+    - .helm_my_kl_01_harbor_credential
+    - .redis_credential
+    - .team_account_credential
+  before_script:
+    - !reference [.git_version, script]
+    - !reference [.helm_push, script]
+  script:
+    - helm_chart_path=$(make patch-helm-chart | tail -1)
+    - GIT_VERSION=$(git_version)
+    - |
+      # PATCHING DYNAMIC VALUES FOR SUB CHART
+      sed -i "s/GIT_TAG/$GIT_VERSION/g" $helm_chart_path/values.yaml
+    - helm_push "$GIT_VERSION" "$REDIS_HOST" "$REDIS_SECRET" "$HELM_CHART_REPO" "$TEAM_ACCOUNT_LDAP_USERNAME" "$TEAM_ACCOUNT_LDAP_PASSWORD" "$helm_chart_path"
+
+argocd_trigger:
+  stage: argocd_trigger
+  variables:
+    TRIGGER_ACTION: update
+    K8S_BRAND_ENV: sige-prod
+    K8S_CLUSTER: self-hosted
+    K8S_NAMESPACE: sige-prod-devops
+    CHART_NAME: rocketchat
+    ALIAS: rocketchat2 (optional)
+    TEAM: devops
+  trigger:
+    project: devops/helm/argocd
+    branch: main
+
+helm_push:
+stage: helm_push
+extends:
+  - .helm_my_kl_01_harbor_credential
+  - .redis_credential
+  - .team_account_credential
+before_script:
+  - !reference [.git_version, script]
+  - !reference [.helm_repo_add, script]
+  - !reference [.helm_push, script]
+script:
+  - helm repo add "devops" "https://harbor.sige.la/chartrepo/devops-chart" "username@example.com" "userpassword"
+  - helm repo update
+  - helm package "<helm chart directory>" --app-version="0.0.1" --version="0.0.1"
+  - HELM_PACKAGE_NAME=`cat "<helm chart path>/Chart.yaml" | grep 'name:' | tail -n1 | awk '{ print $2 }'`
+  - helm cm-push -f "./$HELM_PACKAGE_NAME-0.0.1" "devops"

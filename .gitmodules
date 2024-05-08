@@ -1,3 +1,4 @@
 [submodule "charts/v13.2"]
 	path = charts/v13.2
 	url = https://github.com/kiwitcms/Kiwi.git
+	branch = v13.2

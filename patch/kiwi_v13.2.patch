@@ -38,12 +38,12 @@ diff -ruN ./charts/v13.2/helm/README.md ./charts/v13.2_copy/helm/README.md
 +++ ./charts/v13.2_copy/helm/README.md	2024-05-08 16:22:13.627745646 +0800
 @@ -43,6 +43,7 @@
  helm upgrade --install kiwi --namespace kiwi --create-namespace .  --set database.password=$(pwgen 30 1)
- 
+
  # Once kiwi pod is running:
 +kubectl -n sige-test-devops exec -it kiwi-0 /Kiwi/manage.py initial_setup
  kubectl [--namespace kiwi] exec -it kiwi-0 -c kiwi -- /Kiwi/manage.py set_domain kiwi.example.com
  ```
- 
+
 diff -ruN ./charts/v13.2/helm/templates/_helpers.tpl ./charts/v13.2_copy/helm/templates/_helpers.tpl
 --- ./charts/v13.2/helm/templates/_helpers.tpl	2024-05-08 16:20:27.870731840 +0800
 +++ ./charts/v13.2_copy/helm/templates/_helpers.tpl	2024-05-08 16:22:13.627745646 +0800
@@ -119,7 +119,7 @@ diff -ruN ./charts/v13.2/helm/templates/statefulset.yaml ./charts/v13.2_copy/hel
            {{- end }}
 +      imagePullSecrets:
 +        - name: "{{ include "kiwi.fullname" . }}-image"
- 
+
        initContainers:
          - name: migrations
 -          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -169,7 +169,7 @@ diff -ruN ./charts/v13.2/helm/templates/statefulset.yaml ./charts/v13.2_copy/hel
              value: {{ .Values.database.host }}
            - name: KIWI_DB_PORT
 @@ -61,7 +94,7 @@
- 
+
        containers:
          - name: {{ .Chart.Name }}
 -          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -204,13 +204,13 @@ diff -ruN ./charts/v13.2/helm/values.yaml ./charts/v13.2_copy/helm/values.yaml
    #   https://hub.docker.com/r/kiwitcms/kiwi/tags
 -  tag: latest
 +  tag: 0.4.0
- 
+
  service:
    type: ClusterIP
 @@ -11,20 +11,26 @@
      http: 8080
      https: 8443
- 
+
 +kiwi:
 +  superuser:
 +    name: "root"
@@ -228,22 +228,22 @@ diff -ruN ./charts/v13.2/helm/values.yaml ./charts/v13.2_copy/helm/values.yaml
      kubernetes.io/ingress.allow-http: "false"
      kubernetes.io/tls-acme: "true"
      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
- 
+
 -  host: kiwi.example.org
 +  host: kiwi.sige-test.com
    tls:
      enabled: true
 +    secret: sige-test.com-tls-secret
      port: 443
- 
+
  resources:
 @@ -41,7 +47,7 @@
    persistent: true
- 
+
    # Available class can be listed by "kubectl get storageclasses" command
 -  class: standard
 +  class: local-path
- 
+
    # The size of the storgae where uploaded files will be kept
    size: 32Gi
 @@ -69,7 +75,7 @@
@@ -252,6 +252,6 @@ diff -ruN ./charts/v13.2/helm/values.yaml ./charts/v13.2_copy/helm/values.yaml
    # >>> helm upgrade --install --namespace <my_namespace> <helm_repo>/kiwi --set database.password=<my_password>
 -  # password:
 +  password: root123
- 
+
  mariadb:
    image:
