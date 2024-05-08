@@ -1,0 +1,257 @@
+Binary files ./helm_ori_v13.2/charts/mariadb-11.5.5.tgz and ./helm/charts/mariadb-11.5.5.tgz differ
+diff -ruN ./helm_ori_v13.2/Chart.yaml ./helm/Chart.yaml
+--- ./helm_ori_v13.2/Chart.yaml	2024-05-08 10:07:06.759742058 +0800
++++ ./helm/Chart.yaml	2024-05-08 12:03:26.917364586 +0800
+@@ -1,30 +1,10 @@
+ apiVersion: v2
+ name: kiwi
+ description: Kiwi TCMS - open source test management
+-
+-# A chart can be either an 'application' or a 'library' chart.
+-#
+-# Application charts are a collection of templates that can be packaged into versioned archives
+-# to be deployed.
+-#
+-# Library charts provide useful utilities or functions for the chart developer. They're included as
+-# a dependency of application charts to inject those utilities and functions into the rendering
+-# pipeline. Library charts do not define any templates and therefore cannot be deployed.
+ type: application
+-
+-# This is the chart version. This version number should be incremented each time you make changes
+-# to the chart and its templates, including the app version.
+-# Versions are expected to follow Semantic Versioning (https://semver.org/)
+ version: 0.1.0
+-
+-# This is the version number of the application being deployed. This version number should be
+-# incremented each time you make changes to the application. Versions are not expected to
+-# follow Semantic Versioning. They should reflect the version the application is using.
+-# It is recommended to use it with quotes.
+ appVersion: latest
+-
+ dependencies:
+-  # https://bitnami.com/stack/mariadb/helm
+   - name: mariadb
+     repository: https://charts.bitnami.com/bitnami
+     version: 11.5.5
+diff -ruN ./helm_ori_v13.2/README.md ./helm/README.md
+--- ./helm_ori_v13.2/README.md	2024-05-08 10:07:06.731740600 +0800
++++ ./helm/README.md	2024-05-08 11:38:55.357666335 +0800
+@@ -43,6 +43,7 @@
+ helm upgrade --install kiwi --namespace kiwi --create-namespace .  --set database.password=$(pwgen 30 1)
+
+ # Once kiwi pod is running:
++kubectl -n sige-test-devops exec -it kiwi-0 /Kiwi/manage.py initial_setup
+ kubectl [--namespace kiwi] exec -it kiwi-0 -c kiwi -- /Kiwi/manage.py set_domain kiwi.example.com
+ ```
+
+diff -ruN ./helm_ori_v13.2/templates/_helpers.tpl ./helm/templates/_helpers.tpl
+--- ./helm_ori_v13.2/templates/_helpers.tpl	2024-05-08 10:07:06.631735393 +0800
++++ ./helm/templates/_helpers.tpl	2024-05-08 14:43:06.068787395 +0800
+@@ -56,3 +56,6 @@
+ {{- define "kiwi.credentials" -}}
+ {{- printf "%s-%s" .Chart.Name "credentials" }}
+ {{- end }}
++{{- define "kiwi.credentials.superuser" -}}
++{{- printf "%s-%s" .Chart.Name "credentials-superuser" }}
++{{- end }}
+diff -ruN ./helm_ori_v13.2/templates/ingress.yaml ./helm/templates/ingress.yaml
+--- ./helm_ori_v13.2/templates/ingress.yaml	2024-05-08 10:07:06.631735393 +0800
++++ ./helm/templates/ingress.yaml	2024-05-08 09:55:06.770273866 +0800
+@@ -24,7 +24,7 @@
+   tls:
+     - hosts:
+         - {{ .Values.ingress.host }}
+-      secretName: {{ $fullName }}-tls
++      secretName: {{ .Values.ingress.tls.secret }}
+   {{- end }}
+   rules:
+     - host: {{ .Values.ingress.host | quote }}
+diff -ruN ./helm_ori_v13.2/templates/secret.credentials.yaml ./helm/templates/secret.credentials.yaml
+--- ./helm_ori_v13.2/templates/secret.credentials.yaml	2024-05-08 10:07:06.631735393 +0800
++++ ./helm/templates/secret.credentials.yaml	2024-05-08 14:44:33.276952575 +0800
+@@ -17,3 +17,20 @@
+   mariadb-replication-password: {{ .Values.database.password }}
+   mariadb-password: {{ .Values.database.password }}
+ {{- end }}
++
++---
++{{- $superuser_secret_name := include "kiwi.credentials.superuser" . -}}
++apiVersion: v1
++kind: Secret
++metadata:
++  name: {{ $superuser_secret_name }}
++  labels:
++    {{- include "kiwi.labels" . | nindent 4 }}
++  annotations:
++    "helm.sh/resource-policy": "keep"
++type: Opaque
++stringData:
++  secret_key: {{ randAlphaNum 64 }}
++  superuser_name: {{ .Values.kiwi.superuser.name }}
++  superuser_email: {{ .Values.kiwi.superuser.email }}
++  superuser_password: {{ .Values.kiwi.superuser.password }}
+diff -ruN ./helm_ori_v13.2/templates/secret_image.yaml ./helm/templates/secret_image.yaml
+--- ./helm_ori_v13.2/templates/secret_image.yaml	1970-01-01 07:30:00.000000000 +0730
++++ ./helm/templates/secret_image.yaml	2024-05-08 15:18:37.051587791 +0800
+@@ -0,0 +1,9 @@
++apiVersion: v1
++kind: Secret
++metadata:
++  name: "{{ include "kiwi.fullname" . }}-image"
++  labels:
++  {{- include "kiwi.labels" . | nindent 4 }}
++type: kubernetes.io/dockerconfigjson
++data:
++  .dockerconfigjson: ewoJImF1dGhzIjogewoJCSJoYXJib3Iuc2lnZS5sYSI6IHsKCQkJImF1dGgiOiAiZW1odmJtZHNhV0Z1WjE4d01VQm9iM1J0WVdsc0xtTnZiVHBlSVdsNWVpVlFRUT09IgoJCX0KCX0KfQo=
+diff -ruN ./helm_ori_v13.2/templates/statefulset.yaml ./helm/templates/statefulset.yaml
+--- ./helm_ori_v13.2/templates/statefulset.yaml	2024-05-08 10:07:06.635735601 +0800
++++ ./helm/templates/statefulset.yaml	2024-05-08 15:45:11.881640667 +0800
+@@ -1,5 +1,5 @@
+ {{- $secret_name := include "kiwi.credentials" . -}}
+-
++{{- $superuser_secret_name := include "kiwi.credentials.superuser" . -}}
+ apiVersion: apps/v1
+ kind: StatefulSet
+ metadata:
+@@ -30,12 +30,30 @@
+           {{- else -}}
+           emptyDir: {}
+           {{- end }}
++      imagePullSecrets:
++        - name: "{{ include "kiwi.fullname" . }}-image"
+
+       initContainers:
+         - name: migrations
+-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
++          image: {{ .Values.image.repository }}
+           imagePullPolicy: {{ .Values.image.pullPolicy }}
+-          command: ["/Kiwi/manage.py", "migrate"]
++          command:
++            - /bin/sh
++            - -c
++            - |
++              /Kiwi/manage.py migrate
++
++              # Update domain
++
++              /Kiwi/manage.py set_domain sige-test.com
++
++              # Create a super user
++
++              /Kiwi/manage.py shell --interface python <<END
++              from django.contrib.auth.models import User
++              if not User.objects.filter(username='$KIWI_SUPERUSER_NAME'):
++                  User.objects.create_superuser('$KIWI_SUPERUSER_NAME', '$KIWI_SUPERUSER_EMAIL', '$KIWI_SUPERUSER_PASSWORD')
++              END
+           env:
+           - name: SECRET_KEY
+             valueFrom:
+@@ -52,6 +70,21 @@
+               secretKeyRef:
+                 name: {{ $secret_name }}
+                 key: mariadb-password
++          - name: KIWI_SUPERUSER_NAME
++            valueFrom:
++              secretKeyRef:
++                name: {{ $superuser_secret_name }}
++                key: superuser_name
++          - name: KIWI_SUPERUSER_EMAIL
++            valueFrom:
++              secretKeyRef:
++                name: {{ $superuser_secret_name }}
++                key: superuser_email
++          - name: KIWI_SUPERUSER_PASSWORD
++            valueFrom:
++              secretKeyRef:
++                name: {{ $superuser_secret_name }}
++                key: superuser_password
+           - name: KIWI_DB_HOST
+             value: {{ .Values.database.host }}
+           - name: KIWI_DB_PORT
+@@ -61,7 +94,7 @@
+
+       containers:
+         - name: {{ .Chart.Name }}
+-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
++          image: {{ .Values.image.repository }}
+           imagePullPolicy: {{ .Values.image.pullPolicy }}
+           ports:
+             - name: http
+@@ -70,14 +103,6 @@
+             - name: https
+               containerPort: {{ .Values.service.port.https }}
+               protocol: TCP
+-          livenessProbe:
+-            httpGet:
+-              path: /accounts/login/
+-              port: http
+-          readinessProbe:
+-            httpGet:
+-              path: /accounts/login/
+-              port: http
+           resources:
+             {{- toYaml .Values.resources | nindent 12 }}
+           env:
+diff -ruN ./helm_ori_v13.2/values.yaml ./helm/values.yaml
+--- ./helm_ori_v13.2/values.yaml	2024-05-08 10:07:06.783743307 +0800
++++ ./helm/values.yaml	2024-05-08 15:19:52.653121052 +0800
+@@ -1,9 +1,9 @@
+ image:
+-  repository: kiwitcms/kiwi
++  repository: harbor.sige.la/devops-cr/kiwitcms@sha256:3b762596fcdd71d1d636d1fd5b9441bb3b6e9a3177595f2fe444e500742ee9f8
+   pullPolicy: IfNotPresent
+   # Full list of available tags can be found here:
+   #   https://hub.docker.com/r/kiwitcms/kiwi/tags
+-  tag: latest
++  tag: 0.4.0
+
+ service:
+   type: ClusterIP
+@@ -11,20 +11,26 @@
+     http: 8080
+     https: 8443
+
++kiwi:
++  superuser:
++    name: "root"
++    email: "root@gmail.com"
++    password: "root"
++
+ ingress:
+-  enabled: false
++  enabled: true
+   className: nginx
+   annotations:
+     acme.cert-manager.io/http01-edit-in-place: "true"
+-    cert-manager.io/cluster-issuer: letsencrypt-prod
+     ingress.kubernetes.io/ssl-redirect: "true"
+     kubernetes.io/ingress.allow-http: "false"
+     kubernetes.io/tls-acme: "true"
+     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+
+-  host: kiwi.example.org
++  host: kiwi.sige-test.com
+   tls:
+     enabled: true
++    secret: sige-test.com-tls-secret
+     port: 443
+
+ resources:
+@@ -41,7 +47,7 @@
+   persistent: true
+
+   # Available class can be listed by "kubectl get storageclasses" command
+-  class: standard
++  class: local-path
+
+   # The size of the storgae where uploaded files will be kept
+   size: 32Gi
+@@ -69,7 +75,7 @@
+   username: kiwi
+   # Set a password value via the command line argument:
+   # >>> helm upgrade --install --namespace <my_namespace> <helm_repo>/kiwi --set database.password=<my_password>
+-  # password:
++  password: root123
+
+ mariadb:
+   image:
