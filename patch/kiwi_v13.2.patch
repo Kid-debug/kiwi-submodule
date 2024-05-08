@@ -1,7 +1,7 @@
-Binary files ./helm_ori_v13.2/charts/mariadb-11.5.5.tgz and ./helm/charts/mariadb-11.5.5.tgz differ
-diff -ruN ./helm_ori_v13.2/Chart.yaml ./helm/Chart.yaml
---- ./helm_ori_v13.2/Chart.yaml	2024-05-08 10:07:06.759742058 +0800
-+++ ./helm/Chart.yaml	2024-05-08 12:03:26.917364586 +0800
+Binary files ./charts/v13.2/helm/charts/mariadb-11.5.5.tgz and ./charts/v13.2_copy/helm/charts/mariadb-11.5.5.tgz differ
+diff -ruN ./charts/v13.2/helm/Chart.yaml ./charts/v13.2_copy/helm/Chart.yaml
+--- ./charts/v13.2/helm/Chart.yaml	2024-05-08 16:20:27.870731840 +0800
++++ ./charts/v13.2_copy/helm/Chart.yaml	2024-05-08 16:22:13.623745456 +0800
 @@ -1,30 +1,10 @@
  apiVersion: v2
  name: kiwi
@@ -33,20 +33,20 @@ diff -ruN ./helm_ori_v13.2/Chart.yaml ./helm/Chart.yaml
    - name: mariadb
      repository: https://charts.bitnami.com/bitnami
      version: 11.5.5
-diff -ruN ./helm_ori_v13.2/README.md ./helm/README.md
---- ./helm_ori_v13.2/README.md	2024-05-08 10:07:06.731740600 +0800
-+++ ./helm/README.md	2024-05-08 11:38:55.357666335 +0800
+diff -ruN ./charts/v13.2/helm/README.md ./charts/v13.2_copy/helm/README.md
+--- ./charts/v13.2/helm/README.md	2024-05-08 16:20:27.870731840 +0800
++++ ./charts/v13.2_copy/helm/README.md	2024-05-08 16:22:13.627745646 +0800
 @@ -43,6 +43,7 @@
  helm upgrade --install kiwi --namespace kiwi --create-namespace .  --set database.password=$(pwgen 30 1)
-
+ 
  # Once kiwi pod is running:
 +kubectl -n sige-test-devops exec -it kiwi-0 /Kiwi/manage.py initial_setup
  kubectl [--namespace kiwi] exec -it kiwi-0 -c kiwi -- /Kiwi/manage.py set_domain kiwi.example.com
  ```
-
-diff -ruN ./helm_ori_v13.2/templates/_helpers.tpl ./helm/templates/_helpers.tpl
---- ./helm_ori_v13.2/templates/_helpers.tpl	2024-05-08 10:07:06.631735393 +0800
-+++ ./helm/templates/_helpers.tpl	2024-05-08 14:43:06.068787395 +0800
+ 
+diff -ruN ./charts/v13.2/helm/templates/_helpers.tpl ./charts/v13.2_copy/helm/templates/_helpers.tpl
+--- ./charts/v13.2/helm/templates/_helpers.tpl	2024-05-08 16:20:27.870731840 +0800
++++ ./charts/v13.2_copy/helm/templates/_helpers.tpl	2024-05-08 16:22:13.627745646 +0800
 @@ -56,3 +56,6 @@
  {{- define "kiwi.credentials" -}}
  {{- printf "%s-%s" .Chart.Name "credentials" }}
@@ -54,9 +54,9 @@ diff -ruN ./helm_ori_v13.2/templates/_helpers.tpl ./helm/templates/_helpers.tpl
 +{{- define "kiwi.credentials.superuser" -}}
 +{{- printf "%s-%s" .Chart.Name "credentials-superuser" }}
 +{{- end }}
-diff -ruN ./helm_ori_v13.2/templates/ingress.yaml ./helm/templates/ingress.yaml
---- ./helm_ori_v13.2/templates/ingress.yaml	2024-05-08 10:07:06.631735393 +0800
-+++ ./helm/templates/ingress.yaml	2024-05-08 09:55:06.770273866 +0800
+diff -ruN ./charts/v13.2/helm/templates/ingress.yaml ./charts/v13.2_copy/helm/templates/ingress.yaml
+--- ./charts/v13.2/helm/templates/ingress.yaml	2024-05-08 16:20:27.870731840 +0800
++++ ./charts/v13.2_copy/helm/templates/ingress.yaml	2024-05-08 16:22:13.627745646 +0800
 @@ -24,7 +24,7 @@
    tls:
      - hosts:
@@ -66,9 +66,9 @@ diff -ruN ./helm_ori_v13.2/templates/ingress.yaml ./helm/templates/ingress.yaml
    {{- end }}
    rules:
      - host: {{ .Values.ingress.host | quote }}
-diff -ruN ./helm_ori_v13.2/templates/secret.credentials.yaml ./helm/templates/secret.credentials.yaml
---- ./helm_ori_v13.2/templates/secret.credentials.yaml	2024-05-08 10:07:06.631735393 +0800
-+++ ./helm/templates/secret.credentials.yaml	2024-05-08 14:44:33.276952575 +0800
+diff -ruN ./charts/v13.2/helm/templates/secret.credentials.yaml ./charts/v13.2_copy/helm/templates/secret.credentials.yaml
+--- ./charts/v13.2/helm/templates/secret.credentials.yaml	2024-05-08 16:20:27.870731840 +0800
++++ ./charts/v13.2_copy/helm/templates/secret.credentials.yaml	2024-05-08 16:22:13.627745646 +0800
 @@ -17,3 +17,20 @@
    mariadb-replication-password: {{ .Values.database.password }}
    mariadb-password: {{ .Values.database.password }}
@@ -90,9 +90,9 @@ diff -ruN ./helm_ori_v13.2/templates/secret.credentials.yaml ./helm/templates/se
 +  superuser_name: {{ .Values.kiwi.superuser.name }}
 +  superuser_email: {{ .Values.kiwi.superuser.email }}
 +  superuser_password: {{ .Values.kiwi.superuser.password }}
-diff -ruN ./helm_ori_v13.2/templates/secret_image.yaml ./helm/templates/secret_image.yaml
---- ./helm_ori_v13.2/templates/secret_image.yaml	1970-01-01 07:30:00.000000000 +0730
-+++ ./helm/templates/secret_image.yaml	2024-05-08 15:18:37.051587791 +0800
+diff -ruN ./charts/v13.2/helm/templates/secret_image.yaml ./charts/v13.2_copy/helm/templates/secret_image.yaml
+--- ./charts/v13.2/helm/templates/secret_image.yaml	1970-01-01 07:30:00.000000000 +0730
++++ ./charts/v13.2_copy/helm/templates/secret_image.yaml	2024-05-08 16:22:13.627745646 +0800
 @@ -0,0 +1,9 @@
 +apiVersion: v1
 +kind: Secret
@@ -103,9 +103,9 @@ diff -ruN ./helm_ori_v13.2/templates/secret_image.yaml ./helm/templates/secret_i
 +type: kubernetes.io/dockerconfigjson
 +data:
 +  .dockerconfigjson: ewoJImF1dGhzIjogewoJCSJoYXJib3Iuc2lnZS5sYSI6IHsKCQkJImF1dGgiOiAiZW1odmJtZHNhV0Z1WjE4d01VQm9iM1J0WVdsc0xtTnZiVHBlSVdsNWVpVlFRUT09IgoJCX0KCX0KfQo=
-diff -ruN ./helm_ori_v13.2/templates/statefulset.yaml ./helm/templates/statefulset.yaml
---- ./helm_ori_v13.2/templates/statefulset.yaml	2024-05-08 10:07:06.635735601 +0800
-+++ ./helm/templates/statefulset.yaml	2024-05-08 15:45:11.881640667 +0800
+diff -ruN ./charts/v13.2/helm/templates/statefulset.yaml ./charts/v13.2_copy/helm/templates/statefulset.yaml
+--- ./charts/v13.2/helm/templates/statefulset.yaml	2024-05-08 16:20:27.870731840 +0800
++++ ./charts/v13.2_copy/helm/templates/statefulset.yaml	2024-05-08 16:22:13.627745646 +0800
 @@ -1,5 +1,5 @@
  {{- $secret_name := include "kiwi.credentials" . -}}
 -
@@ -119,7 +119,7 @@ diff -ruN ./helm_ori_v13.2/templates/statefulset.yaml ./helm/templates/statefuls
            {{- end }}
 +      imagePullSecrets:
 +        - name: "{{ include "kiwi.fullname" . }}-image"
-
+ 
        initContainers:
          - name: migrations
 -          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -169,7 +169,7 @@ diff -ruN ./helm_ori_v13.2/templates/statefulset.yaml ./helm/templates/statefuls
              value: {{ .Values.database.host }}
            - name: KIWI_DB_PORT
 @@ -61,7 +94,7 @@
-
+ 
        containers:
          - name: {{ .Chart.Name }}
 -          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -192,9 +192,9 @@ diff -ruN ./helm_ori_v13.2/templates/statefulset.yaml ./helm/templates/statefuls
            resources:
              {{- toYaml .Values.resources | nindent 12 }}
            env:
-diff -ruN ./helm_ori_v13.2/values.yaml ./helm/values.yaml
---- ./helm_ori_v13.2/values.yaml	2024-05-08 10:07:06.783743307 +0800
-+++ ./helm/values.yaml	2024-05-08 15:19:52.653121052 +0800
+diff -ruN ./charts/v13.2/helm/values.yaml ./charts/v13.2_copy/helm/values.yaml
+--- ./charts/v13.2/helm/values.yaml	2024-05-08 16:20:27.870731840 +0800
++++ ./charts/v13.2_copy/helm/values.yaml	2024-05-08 16:22:13.627745646 +0800
 @@ -1,9 +1,9 @@
  image:
 -  repository: kiwitcms/kiwi
@@ -204,13 +204,13 @@ diff -ruN ./helm_ori_v13.2/values.yaml ./helm/values.yaml
    #   https://hub.docker.com/r/kiwitcms/kiwi/tags
 -  tag: latest
 +  tag: 0.4.0
-
+ 
  service:
    type: ClusterIP
 @@ -11,20 +11,26 @@
      http: 8080
      https: 8443
-
+ 
 +kiwi:
 +  superuser:
 +    name: "root"
@@ -228,22 +228,22 @@ diff -ruN ./helm_ori_v13.2/values.yaml ./helm/values.yaml
      kubernetes.io/ingress.allow-http: "false"
      kubernetes.io/tls-acme: "true"
      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-
+ 
 -  host: kiwi.example.org
 +  host: kiwi.sige-test.com
    tls:
      enabled: true
 +    secret: sige-test.com-tls-secret
      port: 443
-
+ 
  resources:
 @@ -41,7 +47,7 @@
    persistent: true
-
+ 
    # Available class can be listed by "kubectl get storageclasses" command
 -  class: standard
 +  class: local-path
-
+ 
    # The size of the storgae where uploaded files will be kept
    size: 32Gi
 @@ -69,7 +75,7 @@
@@ -252,6 +252,6 @@ diff -ruN ./helm_ori_v13.2/values.yaml ./helm/values.yaml
    # >>> helm upgrade --install --namespace <my_namespace> <helm_repo>/kiwi --set database.password=<my_password>
 -  # password:
 +  password: root123
-
+ 
  mariadb:
    image:
